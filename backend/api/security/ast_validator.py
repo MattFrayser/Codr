@@ -43,7 +43,8 @@ class TreeSitterParser:
         for lang_key, module in language_modules.items():
             try:
                 language = Language(module.language(), name=lang_key)
-                parser = Parser(language)
+                parser = Parser()
+                parser.set_language(language)
                 self.languages[lang_key] = language
                 self.parsers[lang_key] = parser
             except Exception as e:
