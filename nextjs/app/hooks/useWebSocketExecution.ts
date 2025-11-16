@@ -87,7 +87,11 @@ export function useWebSocketExecution(): UseWebSocketExecutionResult {
         // Send execute message
         ws.send(JSON.stringify({
           type: 'execute',
+<<<<<<< Updated upstream
           api_key: process.env.API_KEY,
+=======
+          api_key: process.API_KEY,
+>>>>>>> Stashed changes
           code,
           language
         }));

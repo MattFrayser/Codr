@@ -136,7 +136,7 @@ async def websocket_execute(websocket: WebSocket):
 
                 if message.get("type") == "input":
                     input_data = message.get("data", "")
-                    input_data_mb = len(input_data) * 1024 * 1024
+                    input_data_mb = len(input_data) * 1024 #input data is in bytes
                     if len(input_data) > settings.max_input_mb:
                         log.warning(f"Input too large for job {job_id}: {len(input_data)} bytes")
                         await websocket.send_json({
@@ -152,7 +152,7 @@ async def websocket_execute(websocket: WebSocket):
         except WebSocketDisconnect:
             log.info(f"WebSocket disconnected for job {job_id}")
         except Exception as e:
-            log.error(f"Error in WebSocket message loop: {_santize_error(e)}")
+            log.error(f"Error in WebSocket message loop: {_sanitize_error(e)}")
             await websocket.send_json({
                 "type": "error",
                 "message": f"WebSocket error: {str(e)}"

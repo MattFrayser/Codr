@@ -1,0 +1,74 @@
+app = "codr-websocket"
+primary_region = "iad"  
+
+# Build configuration
+[build]
+  dockerfile = "Dockerfile"
+
+[processes]
+  app = "python3 -m services.websocket"
+
+# Environment variables (non-secrets)
+[env]
+  ENV = "production"
+  HOST = "0.0.0.0"
+  PORT = "8000"
+  
+  # Worker config (not used by websocket but needed by settings schema)
+  JOB_QUEUE_NAME = "codr:job_queue"
+  MAX_QUEUE_SIZE = "1000"
+  WORKER_POLL_TIMEOUT = "5"
+  
+  # Execution limits
+  EXECUTION_TIMEOUT = "7"
+  MAX_MEMORY_MB = "300"
+  MAX_FILE_SIZE_MB = "1"
+  COMPILATION_TIMEOUT = "10"
+  MAX_INPUT_MB = "10000"
+  
+  # Polling
+  MAX_POLL_ATTEMPTS = "60"
+  POLL_INTERVAL = "1"
+  REDIS_TTL = "3600"
+
+# HTTP service configuration
+[[services]]
+  processes = ["app"]
+  internal_port = 8000
+  protocol = "tcp"
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["http", "tls"]
+
+  # Health checks
+  [[services.tcp_checks]]
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "5s"
+
+  [[services.http_checks]]
+    interval = 30000
+    timeout = 10000
+    grace_period = 5000
+    method = "get"
+    path = "/health"
+
+# VM resources
+[vm]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512
+
+# Auto-scaling (adjust as needed)
+[scaling]
+  min_count = 1
+  max_count = 2  # Scale WebSocket servers based on connections

@@ -161,7 +161,9 @@ class CodeExecutionWorker:
             
             self.jobs_completed += 1
             log.info(f"Worker {self.worker_id} completed job {job_id} in {result.execution_time:.2f}s (exit code: {result.exit_code})")
-            
+        except asyncio.TimeoutError:
+            # Expected when queue is empty - don't log
+            continue
         except Exception as e:
             import traceback
             log.error(f"Worker {self.worker_id} failed job {job_id}: {e}")

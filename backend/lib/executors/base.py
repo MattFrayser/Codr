@@ -149,7 +149,7 @@ class BaseExecutor(ABC):
             sandbox_command = self._build_sandbox_command(command, workdir)
 
             process = subprocess.Popen(
-                command, 
+                sandbox_command, 
                 stdin=slave_fd,
                 stdout=slave_fd,
                 stderr=slave_fd,
