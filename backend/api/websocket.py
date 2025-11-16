@@ -6,19 +6,19 @@ import asyncio
 import json
 import secrets
 from typing import Dict, Any
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Request
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import JSONResponse
 
 
 from api.services import JobService
-from api.services.pubsub_service import get_pubsub_service, PubSubService
+from api.services.pubsub_service import get_pubsub_service
 from api.services.execution_service import ExecutionService
 from api.connect.redis_manager import get_async_redis
 from api.models.schema import CodeSubmission
 from api.security.validator import CodeValidator
 from logger.logger import log
 from config.settings import get_settings
-from executors import get_executor
+from executors import get_executor, get_default_filename
 
 
 router = APIRouter()
@@ -98,14 +98,8 @@ async def websocket_execute(websocket: WebSocket):
         try:
             executor = get_executor(language)
             # Get default filename from language config
-            filename_map = {
-                "python": "main.py",
-                "javascript": "main.js",
-                "c": "main.c",
-                "cpp": "main.cpp",
-                "rust": "main.rs"
-            }
-            filename = filename_map.get(language.lower(), "main.txt")
+
+            filename = get_default_filename(language)
         except Exception:
             filename = "main.txt"
 

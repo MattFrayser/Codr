@@ -58,6 +58,3 @@ class CodeValidator:
             return False, f"Unsupported language: {language}"
 
 
-def validate_code(code: str, language: str) -> Tuple[bool, str]:
-    """ Convenience function to validate code"""
-    return CodeValidator.validate(code, language)

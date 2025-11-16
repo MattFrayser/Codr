@@ -60,6 +60,7 @@ class BaseExecutor(ABC):
             f.write(code)
 
         return filepath
+
     def _validateFileName(self, filename: str):
         """ Validates file name uses appropriate characters """
 
@@ -69,6 +70,7 @@ class BaseExecutor(ABC):
         # Prevent any Traversal
         if '..' in filename or filename.startswith('/'):
             raise ValueError(f"Invalid filename: {filename}")
+
     def _build_sandbox_command(self, command: List[str], workdir: str) -> List[str]:
         """
         Build Firejail sandbox command with security restrictions
@@ -214,7 +216,7 @@ class BaseExecutor(ABC):
             )
 
         except Exception as e:
-            if get_settings().env == 'development': 
+            if settings.env == 'development': 
                 traceback.print_exc()
             execution_time = time.time() - start_time
             return self._format_error_result(e, execution_time)

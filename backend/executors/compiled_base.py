@@ -37,7 +37,7 @@ class CompiledExecutor(BaseExecutor):
 
         try:
             from config.settings import get_settings
-            compilation_timeout = get_settings().compilation_timeout
+            compilation_timeout = settings.compilation_timeout
         except (ImportError, Exception):
             compilation_timeout = 10  # Fallback default
 

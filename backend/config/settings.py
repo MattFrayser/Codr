@@ -31,10 +31,6 @@ class AppSettings(BaseSettings):
     redis_url: str = Field(default="redis://localhost:6379/0", description="Redis connection URL")
     redis_ttl: int = Field(default=3600, description="Job TTL in seconds")
 
-    # Polling Configuration
-    max_poll_attempts: int = Field(default=60, description="Maximum polling attempts")
-    poll_interval: int = Field(default=1, description="Poll interval in seconds")
-
     # Rate Limiting Configuration
     rate_limit_submit: str = Field(default="10/minute", description="Submit endpoint rate limit")
     rate_limit_stream: str = Field(default="30/minute", description="Stream endpoint rate limit")
