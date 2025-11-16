@@ -6,7 +6,6 @@ import time
 from abc import ABC, abstractmethod
 from typing import Dict, List, Any, Optional, Callable
 from config.settings import get_settings
-from api.models.validators import validateFileName
 from logger.logger import log
 
 class BaseExecutor(ABC):

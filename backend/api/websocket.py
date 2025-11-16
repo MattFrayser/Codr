@@ -4,9 +4,11 @@ WebSocket endpoint for real-time bidirectional code execution
 
 import asyncio
 import json
+import secrets
 from typing import Dict, Any
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from fastapi.responses import JSONResponse
+
 
 from api.services import JobService
 from api.services.pubsub_service import get_pubsub_service, PubSubService
@@ -17,6 +19,7 @@ from api.security.validator import CodeValidator
 from logger.logger import log
 from config.settings import get_settings
 from executors import get_executor
+
 
 router = APIRouter()
 
