@@ -1,3 +1,4 @@
+
 """
 Standalone worker process for executing code jobs.
 Runs on separate servers from WebSocket handlers.
@@ -115,11 +116,15 @@ class CodeExecutionWorker:
                 await ps.subscribe(input_channel)
                 
                 log.debug(f"Worker {self.worker_id} subscribed to {input_channel}")
-                
+
                 try:
                     async for message in ps.listen():
                         if message["type"] == "message":
-                            input_data = message["data"].decode('utf-8')
+
+                            data = message["data"]
+                            if isinstance(data, bytes):
+                                data = data.decode('utf-8')
+
                             await input_queue.put(input_data)
                             log.debug(f"Worker {self.worker_id} received input for {job_id}: {input_data[:50]}")
                 except asyncio.CancelledError:

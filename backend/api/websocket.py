@@ -18,6 +18,7 @@ from api.models.schema import CodeSubmission
 from api.security.validator import CodeValidator
 from logger.logger import log
 from config.settings import get_settings
+from api.middleware.auth import verify_api_key
 from executors import get_executor, get_default_filename
 
 
@@ -139,9 +140,6 @@ async def websocket_execute(websocket: WebSocket):
         # Register connection
         manager.active_connections[job_id] = websocket
 
-        # Create input queue for bidirectional communication
-        input_queue = asyncio.Queue()
-
         pubsub_service = get_pubsub_service()
 
         # Define message handler - forwards PTY output to WebSocket
@@ -170,6 +168,7 @@ async def websocket_execute(websocket: WebSocket):
 
                 if message.get("type") == "input":
                     input_data = message.get("data", "")
+                    input_data_mb = len(input_data) * 1024 * 1024
                     if len(input_data) > settings.max_input_mb:
                         log.warning(f"Input too large for job {job_id}: {len(input_data)} bytes")
                         await websocket.send_json({
@@ -198,7 +197,7 @@ async def websocket_execute(websocket: WebSocket):
         try:
             await websocket.send_json({
                 "type": "error",
-                "message": f"Server error: {_santize_error(e)}"
+                "message": f"Server error: {_sanitize_error(e)}"
             })
         except:
             pass
@@ -211,7 +210,7 @@ async def websocket_execute(websocket: WebSocket):
                 subscription_task.cancel()
 
 
-def _santize_error(error: Exception) -> str:
+def _sanitize_error(error: Exception) -> str:
     if get_settings().env == 'development':
         return str(error)
     else:
