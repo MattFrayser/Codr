@@ -1,0 +1,29 @@
+# Web Framework
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+
+# Data Validation
+pydantic==2.9.0
+pydantic-settings==2.5.2
+
+# Database/Cache
+redis[hiredis]==5.0.1  # Includes async support for Pub/Sub
+
+# Rate Limiting
+slowapi==0.1.9
+
+# ASGI Server
+python-multipart==0.0.9
+
+# Utilities
+python-dotenv==1.0.0
+
+# Testing (for test_api.py script)
+requests==2.31.0
+
+# Code Parsing & AST Analysis
+tree-sitter==0.21.3
+tree-sitter-javascript==0.21.4
+tree-sitter-c==0.21.4
+tree-sitter-cpp==0.22.3
+tree-sitter-rust==0.21.2

@@ -1,0 +1,76 @@
+from .base import BaseExecutor
+from .compiled_base import CompiledExecutor
+from .python import PythonExecutor
+from .javascript import JavaScriptExecutor
+from .rust import RustExecutor
+from .c import CExecutor
+from .cpp import CppExecutor
+
+EXECUTORS = {
+    'python': PythonExecutor,
+    'javascript': JavaScriptExecutor,
+    'rust': RustExecutor,
+    'c': CExecutor,
+    'cpp': CppExecutor,
+    'c++': CppExecutor,  # Alias for cpp
+}
+
+
+def get_executor(language: str) -> BaseExecutor:
+    """
+    Get executor instance for the specified language
+
+    Args:
+        language: Programming language name (lowercase)
+
+    Returns:
+        BaseExecutor instance for the language
+
+    Raises:
+        ValueError: If language is not supported
+    """
+    language = language.lower().strip()
+    executor_class = EXECUTORS.get(language)
+
+    if not executor_class:
+        supported = ', '.join(sorted(set(EXECUTORS.keys())))
+        raise ValueError(
+            f"Unsupported language: {language}. "
+            f"Supported languages: {supported}"
+        )
+
+    return executor_class()
+
+
+def get_supported_languages() -> set:
+    """
+    Get set of all supported languages
+
+    Returns:
+        Set of supported language names (lowercase)
+
+    Example:
+        >>> languages = get_supported_languages()
+        >>> 'python' in languages
+        True
+    """
+    return set(EXECUTORS.keys())
+
+
+def is_language_supported(language: str) -> bool:
+    """
+    Check if a language is supported
+
+    Args:
+        language: Programming language name
+
+    Returns:
+        True if language is supported, False otherwise
+
+    Example:
+        >>> is_language_supported('python')
+        True
+        >>> is_language_supported('cobol')
+        False
+    """
+    return language.lower().strip() in EXECUTORS
