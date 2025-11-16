@@ -1,2 +1,13 @@
+
+# next.js
+/.next/
+/out/
+
+# dependencies
+/node_modules/
+
+# production
+/build
+
 .env
 REFACTORING.md
