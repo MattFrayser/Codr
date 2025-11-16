@@ -30,23 +30,22 @@ class AsyncRedisManager:
                     raise Exception("REDIS_URL environment variable is not set.")
 
             try:
-                # Configure TLS/SSL for secure Redis connections (rediss://)
+                # Configure connection parameters
                 connection_kwargs = {
-                    "decode_responses": True,  # Automatically decode bytes to strings
+                    "decode_responses": True,
                     "socket_connect_timeout": 5,
-                    "socket_timeout": 5,
+                    "socket_timeout": None,
                     "retry_on_timeout": True,
                     "health_check_interval": 30,
                 }
 
-                # Add SSL configuration for TLS connections
+                # redis-py automatically handles SSL when URL starts with rediss://
+                # No manual SSL configuration needed for Upstash
                 if redis_url.startswith('rediss://'):
-                    connection_kwargs["ssl_cert_reqs"] = ssl.CERT_REQUIRED
-                    connection_kwargs["ssl_check_hostname"] = True
                     log.info("Using TLS for Redis connection")
 
                 cls._instance = await aioredis.from_url(redis_url, **connection_kwargs)
-
+                
                 # Test connection
                 await cls._instance.ping()
                 log.info("Async Redis connection established")

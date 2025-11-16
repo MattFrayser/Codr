@@ -1,3 +1,5 @@
+
+from .jwt_manager import JobTokenManager, get_token_manager
 from .auth import (
     APIKeyMiddleware,
     verify_api_key,
@@ -16,6 +18,8 @@ __all__ = [
     "verify_api_key",
     "api_key_header",
     "API_KEY_NAME",
+    "get_token_manager",
+    'JobTokenManager',
     
     # Rate limiting
     "limiter",

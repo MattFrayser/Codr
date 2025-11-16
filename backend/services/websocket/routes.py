@@ -4,11 +4,12 @@ WebSocket endpoint for real-time bidirectional code execution
 
 import asyncio
 import json
-import secrets
 import time
-from typing import Dict, Any
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Request
+import uuid
+from typing import Dict, Any, Optional
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Request, Depends
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from .manager import ConnectionManager
 from lib.services import JobService
@@ -16,6 +17,7 @@ from lib.services.pubsub_service import get_pubsub_service
 from lib.redis import get_async_redis
 from lib.models.schema import CodeSubmission
 from lib.security.validator import CodeValidator
+from .middleware.jwt_manager import get_token_manager
 from lib.logger import log
 from lib.config import get_settings
 from .middleware import verify_api_key
@@ -24,14 +26,63 @@ from lib.executors import get_default_filename
 router = APIRouter()
 manager = ConnectionManager()
 
+
+# Request/Response models for job creation
+class CreateJobRequest(BaseModel):
+    """Request model for job creation (optional, for future use)."""
+    # Can add fields like: max_execution_time, language_filter, etc.
+    pass
+
+
+class CreateJobResponse(BaseModel):
+    """Response model for job creation."""
+    job_id: str
+    job_token: str
+    expires_at: str
+
+
+@router.post("/api/jobs/create", response_model=CreateJobResponse)
+async def create_job(
+    request: Optional[CreateJobRequest] = None,
+    _: bool = Depends(verify_api_key)  # Require API key for job creation
+):
+    """
+    Create a new code execution job.
+
+    This endpoint requires API key authentication via X-API-Key header.
+    Returns a job_id and short-lived job_token for WebSocket authentication.
+
+    Security:
+    - API key required (prevents unauthorized job creation)
+    - Job token expires in 15 minutes
+    - Job token can only be used once (single-use)
+    """
+    # Generate unique job ID
+    job_id = str(uuid.uuid4())
+
+    # Create signed JWT token
+    token_manager = get_token_manager()
+    token_data = token_manager.create_job_token(job_id)
+
+    log.info(f"Created job {job_id} with token (expires: {token_data['expires_at']})")
+
+    return CreateJobResponse(**token_data)
+
 @router.websocket("/ws/execute")
 async def websocket_execute(websocket: WebSocket):
-    """ websocket endpoint """
+    """
+    WebSocket endpoint for code execution.
+
+    Authentication:
+    - First message must contain: {type: 'execute', job_id, job_token, code, language}
+    - job_token is verified before any code execution
+    - Tokens are single-use and expire after 15 minutes
+    """
 
     job_id: str = None
 
     try:
-        
+
         await websocket.accept()
         log.debug("WebSocket connection accepted, waiting for execute message")
 
@@ -40,18 +91,44 @@ async def websocket_execute(websocket: WebSocket):
             timeout=5.0  # Prevent connection camping
         )
 
-        # Websocket has custom auth here because websocket will not allow
-        # for HTTP heads 
-        settings = get_settings()
-        client_api_key = data.get("api_key")
-        
-        if not client_api_key:
-            await websocket.send_json({"type": "error", "message": "API key required"})
+        # Extract authentication fields (JWT token replaces API key)
+        job_id = data.get("job_id")
+        job_token = data.get("job_token")
+
+        if not job_id or not job_token:
+            await websocket.send_json({
+                "type": "error",
+                "message": "Missing job_id or job_token"
+            })
             await websocket.close(code=1008)
             return
-        
-        if not secrets.compare_digest(client_api_key, settings.api_key):
-            await websocket.send_json({"type": "error", "message": "Invalid API key"})
+
+        # Verify JWT token
+        token_manager = get_token_manager()
+        try:
+            payload = token_manager.verify_job_token(job_token, job_id)
+            jti = payload.get("jti")
+
+            # Check if token already used (single-use enforcement)
+            if await token_manager.is_token_used(jti):
+                await websocket.send_json({
+                    "type": "error",
+                    "message": "Job token has already been used"
+                })
+                await websocket.close(code=1008)
+                return
+
+            # Mark token as used
+            await token_manager.mark_token_used(jti)
+
+            log.info(f"Job {job_id} authenticated successfully")
+
+        except Exception as e:
+            log.warning(f"Job {job_id} authentication failed: {str(e)}")
+            await websocket.send_json({
+                "type": "error",
+                "message": "Authentication failed"
+            })
             await websocket.close(code=1008)
             return
 

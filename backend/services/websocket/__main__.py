@@ -19,6 +19,7 @@ import uvicorn
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -38,15 +39,17 @@ from lib.logger import log
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """ Application lifecycle manager (startup and shutdown events) """
+ 
+    settings = get_settings()
     try:
         redis_client = await get_async_redis()
     except Exception as e:
         log.error(f"Redis connection failed: {e}")
-        raise # Fait fast 
+        raise  # Fail fast
 
     app.state.job_service = JobService(redis_client)
 
-    if not settings.api_key and setting.dev != 'development':
+    if not settings.api_key and setting.env != 'development':
         log.error("API key not set")
         raise
 
@@ -59,19 +62,19 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     """ Create FastAPI app """
+ 
+    settings = get_settings()
     app = FastAPI(
         title="Codr API",
         description="Secure code execution API with sandboxing",
         version="2.0.0",
         lifespan=lifespan,
     )
-
+ 
     # Add rate limiter to app state
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-
-    # CORS Configuration
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.get_cors_origins_list(),
@@ -128,10 +131,9 @@ def create_app() -> FastAPI:
 
 if __name__ == "__main__":
 
-    settings = get_settings()
-
     app = create_app()
 
+    settings = get_settings()
     uvicorn.run(
         app,
         host=settings.host,

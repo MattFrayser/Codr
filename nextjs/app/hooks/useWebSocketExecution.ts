@@ -5,6 +5,7 @@
  */
 
 import { useState, useRef, useCallback } from 'react';
+import { createJob, JobApiError } from '../lib/api/jobApi';
 
 export interface OutputLine {
   type: 'stdout' | 'stderr' | 'system' | 'input';
@@ -64,34 +65,49 @@ export function useWebSocketExecution(): UseWebSocketExecutionResult {
     // Clear previous output
     setOutputLines([]);
     setIsExecuting(true);
-    addOutputLine('system', 'Connecting to execution service...');
 
     try {
-      // Determine WebSocket protocol based on current location
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
+      // Step 1: Create job and get token (no API key needed - handled server-side)
+      addOutputLine('system', 'Creating execution job...');
 
-      // For development, connect directly to backend
+      let jobData;
+      try {
+        jobData = await createJob();
+      } catch (error) {
+        if (error instanceof JobApiError) {
+          addOutputLine('stderr', `Failed to create job: ${error.message}`);
+        } else {
+          addOutputLine('stderr', 'Unexpected error creating job');
+        }
+        setIsExecuting(false);
+        return;
+      }
+
+      const { job_id, job_token, expires_at } = jobData;
+      addOutputLine('system', `Job created: ${job_id}`);
+      addOutputLine('system', `Token expires: ${new Date(expires_at).toLocaleTimeString()}`);
+
+      // Step 2: Connect to WebSocket
+      addOutputLine('system', 'Connecting to execution service...');
+
       const isDev = process.env.NODE_ENV === 'development';
       const wsUrl = isDev
         ? 'ws://localhost:8000/ws/execute'
-        : `${protocol}//${host}/ws/execute`;
+        : 'wss://codr-websocket.fly.dev/ws/execute';
 
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       // Connection opened
       ws.onopen = () => {
-        addOutputLine('system', 'Connected! Starting execution...');
+        addOutputLine('system', 'Connected! Authenticating and starting execution...');
 
-        // Send execute message
+        // Step 3: Send authenticated execution request
+        // IMPORTANT: No API key here, only job_id and job_token
         ws.send(JSON.stringify({
           type: 'execute',
-<<<<<<< Updated upstream
-          api_key: process.env.API_KEY,
-=======
-          api_key: process.API_KEY,
->>>>>>> Stashed changes
+          job_id,
+          job_token,
           code,
           language
         }));
@@ -141,7 +157,10 @@ export function useWebSocketExecution(): UseWebSocketExecutionResult {
 
       // Handle connection close
       ws.onclose = (event) => {
-        if (isExecuting) {
+        // Code 1008 indicates authentication failure
+        if (event.code === 1008) {
+          addOutputLine('stderr', 'Authentication failed - invalid or expired token');
+        } else if (isExecuting) {
           if (event.wasClean) {
             console.log(`WebSocket closed cleanly, code=${event.code}, reason=${event.reason}`);
           } else {

@@ -18,6 +18,9 @@ python-multipart==0.0.9
 # Utilities
 python-dotenv==1.0.0
 
+# JWT Authentication
+python-jose[cryptography]==3.3.0
+
 # Testing (for test_api.py script)
 requests==2.31.0
 

@@ -10,7 +10,7 @@ import subprocess
 from typing import List, Tuple
 from abc import abstractmethod
 from .base import BaseExecutor
-from config.settings import get_settings
+from lib.config import get_settings
 
 class CompiledExecutor(BaseExecutor):
     """

@@ -36,31 +36,34 @@ class CodeExecutionWorker:
         
         while self.running:
             try:
-                # BRPOP blocks until job available (5s timeout)
-                result = await redis.brpop("codr:job_queue", timeout=5)
-                
+                result = await redis.brpop(
+                    self.settings.job_queue_name,
+                    timeout=self.settings.worker_poll_timeout
+                )
+ 
                 if result:
                     queue_name, job_data_json = result
                     job_data = json.loads(job_data_json)
-                    
+ 
                     # Track current job for graceful shutdown
                     self.current_job_id = job_data["job_id"]
-                    
+ 
                     # Execute the job
                     await self.execute_job(job_data)
-                    
+ 
                     self.current_job_id = None
                 else:
-                    # Timeout - no jobs available
-                    log.debug(f"Worker {self.worker_id} idle (queue empty)")
-                    
+                    # Timeout - no jobs available (normal when queue is empty)
+                    pass
+ 
             except asyncio.CancelledError:
                 log.info(f"Worker {self.worker_id} cancelled")
                 break
-            except Exception as e:
-                log.error(f"Worker {self.worker_id} error in main loop: {e}")
-                await asyncio.sleep(1)  # Brief pause before retry
-        
+            except (ConnectionError, asyncio.TimeoutError) as e:
+                # Redis connection issues or timeouts - don't spam logs
+                log.debug(f"Worker {self.worker_id} connection issue: {e}")
+                await asyncio.sleep(1)        
+
         log.info(f"Worker {self.worker_id} stopped. Stats: {self.jobs_completed} completed, {self.jobs_failed} failed")
     
     async def execute_job(self, job_data: Dict[str, Any]):
@@ -161,9 +164,6 @@ class CodeExecutionWorker:
             
             self.jobs_completed += 1
             log.info(f"Worker {self.worker_id} completed job {job_id} in {result.execution_time:.2f}s (exit code: {result.exit_code})")
-        except asyncio.TimeoutError:
-            # Expected when queue is empty - don't log
-            continue
         except Exception as e:
             import traceback
             log.error(f"Worker {self.worker_id} failed job {job_id}: {e}")

@@ -20,6 +20,11 @@ class AppSettings(BaseSettings):
     port: int = Field(default=8000, description="Server port")
     cors_origins: str = Field(default="*", description="CORS origins (comma-separated)")
 
+    # JWT Configuration
+    jwt_secret: str = Field(..., description="Secret key for JWT signing")
+    jwt_algorithm: str = Field(default="HS256", description="JWT signing algorithm")
+    jwt_expiration_minutes: int = Field(default=15, description="JWT token expiration in minutes")
+
     # Execution Configuration
     execution_timeout: int = Field(default=7, description="Execution timeout in seconds")
     max_memory_mb: int = Field(default=300, description="Maximum memory per execution in MB")
