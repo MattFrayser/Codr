@@ -1,0 +1,21 @@
+# Development and Testing Dependencies
+
+# Testing Framework
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+
+# Testing Utilities
+httpx==0.25.2  # For async HTTP testing
+fakeredis==2.20.1  # Mock Redis for testing
+pytest-timeout==2.2.0  # Timeout handling for tests
+
+# Code Quality
+black==23.12.1
+flake8==6.1.0
+mypy==1.7.1
+isort==5.13.2
+
+# Coverage Reporting
+coverage[toml]==7.3.4
