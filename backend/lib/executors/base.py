@@ -149,7 +149,7 @@ class BaseExecutor(ABC):
             sandbox_command = self._build_sandbox_command(command, workdir)
 
             process = subprocess.Popen(
-                sandbox_command, 
+                command, 
                 stdin=slave_fd,
                 stdout=slave_fd,
                 stderr=slave_fd,
@@ -206,14 +206,17 @@ class BaseExecutor(ABC):
                 # Timeout
                 if time.time() - start_time > self.timeout:
                     process.kill()
+                    process.wait() # wait for terminate before break
                     break
 
             os.close(master_fd)
             execution_time = time.time() - start_time
 
+            return_code = process.returncode if process.returncode is not None else -1
+
             return ExecutionResult(
                 success=process.returncode == 0,
-                exit_code=process.returncode,
+                exit_code=return_code,
                 execution_time=execution_time,
                 stdout=complete_output.decode('utf-8', errors='replace'),
                 stderr=""

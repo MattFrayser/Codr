@@ -22,6 +22,7 @@ from lib.logger import log
 from lib.config import get_settings
 from .middleware import verify_api_key
 from lib.executors import get_default_filename
+from lib.config import get_settings
 
 router = APIRouter()
 manager = ConnectionManager()
@@ -174,6 +175,8 @@ async def websocket_execute(websocket: WebSocket):
         # Create job
         redis = await get_async_redis()
         job_service = JobService(redis)
+        settings = get_settings()
+
         job_id = await job_service.create_job(
             submission.code,
             submission.language,
@@ -213,7 +216,7 @@ async def websocket_execute(websocket: WebSocket):
 
                 if message.get("type") == "input":
                     input_data = message.get("data", "")
-                    input_data_mb = len(input_data) * 1024 #input data is in bytes
+                    input_data_kb = len(input_data) * 1024 #input data is in bytes
                     if len(input_data) > settings.max_input_mb:
                         log.warning(f"Input too large for job {job_id}: {len(input_data)} bytes")
                         await websocket.send_json({
