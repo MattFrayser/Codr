@@ -1,5 +1,5 @@
 {
-  "compilerOptions": {
+"compilerOptions": {
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
@@ -14,14 +14,21 @@
     "jsx": "preserve",
     "incremental": true,
     "plugins": [
-      {
-        "name": "next"
-      }
+        {
+            "name": "next"
+        }
     ],
     "paths": {
-      "@/*": ["./*"]
+        "@/*": ["./app/*"],
+        "@/components/*": ["./app/components/*"],
+        "@/types/*": ["./app/types/*"],
+        "@/hooks/*": ["./app/hooks/*"],
+        "@/lib/*": ["./app/lib/*"],
+        "@/config/*": ["./app/config/*"],
+        "@/styles/*": ["./app/styles/*"]
     }
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "tailwind.config.js"],
-  "exclude": ["node_modules"]
+},
+"include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "tailwind.config.js"],
+"exclude": ["node_modules"]
 }
+

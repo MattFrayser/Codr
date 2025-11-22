@@ -5,7 +5,6 @@
  */
 
 export interface EditorSettings {
-  theme: string;
   fontSize: number;
   tabSize: number;
   enableAutocomplete: boolean;
@@ -13,17 +12,10 @@ export interface EditorSettings {
 
 // Default editor settings
 export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
-  theme: "vs-dark",
   fontSize: 18,
   tabSize: 2,
   enableAutocomplete: true
 };
-
-// Available themes
-export const THEMES = {
-  DARK: "vs-dark",
-  LIGHT: "light"
-} as const;
 
 // Font size constraints
 export const FONT_SIZE = {
@@ -40,6 +32,8 @@ export const TAB_SIZES = [2, 4, 8] as const;
  */
 export function buildEditorOptions(settings: EditorSettings) {
   return {
+    fontFamily: "'Geist Mono', 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace",
+    fontLigatures: false,
     minimap: { enabled: false },
     fontSize: settings.fontSize,
     lineNumbers: "on" as const,
@@ -53,15 +47,14 @@ export function buildEditorOptions(settings: EditorSettings) {
       comments: false,
       strings: settings.enableAutocomplete,
     },
-    wordBasedSuggestions: settings.enableAutocomplete ? ('currentDocument' as const) : ('off' as const)
+    wordBasedSuggestions: settings.enableAutocomplete ? ('currentDocument' as const) : ('off' as const),
+    scrollbar: {
+      vertical: 'hidden' as const,
+      horizontal: 'hidden' as const,
+      verticalScrollbarSize: 0,
+      horizontalScrollbarSize: 0
+    }
   };
-}
-
-/**
- * Toggle theme between dark and light
- */
-export function toggleTheme(currentTheme: string): string {
-  return currentTheme === THEMES.DARK ? THEMES.LIGHT : THEMES.DARK;
 }
 
 /**

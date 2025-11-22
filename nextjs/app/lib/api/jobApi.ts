@@ -1,8 +1,8 @@
 /**
  * API client for job management.
  *
- * This client calls the Next.js API route which proxies to the backend.
- * The API key is never exposed to the browser - it stays server-side.
+ * Calls Next.js API route which proxies to backend.
+ * API key stays server-side.
  */
 
 export interface CreateJobResponse {
@@ -21,18 +21,9 @@ export class JobApiError extends Error {
   }
 }
 
-/**
- * Create a new code execution job.
- *
- * Calls the Next.js API route which securely proxies the request
- * to the backend with the API key. The frontend never knows the API key.
- *
- * @returns Job data including job_id and short-lived job_token
- * @throws JobApiError if the request fails
- */
 export async function createJob(): Promise<CreateJobResponse> {
   try {
-    // Call Next.js API route (which proxies to backend with API key)
+    // Call Next.js API route (proxies to backend with API key)
     const response = await fetch('/api/jobs/create', {
       method: 'POST',
       headers: {

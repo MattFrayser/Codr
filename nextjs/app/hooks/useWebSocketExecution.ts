@@ -5,13 +5,9 @@
  */
 
 import { useState, useRef, useCallback } from 'react';
-import { createJob, JobApiError } from '../lib/api/jobApi';
-
-export interface OutputLine {
-  type: 'stdout' | 'stderr' | 'system' | 'input';
-  content: string;
-  timestamp?: number;
-}
+import { WebSocketClient } from '@/lib/api/websocket';
+import { OutputLine } from '@/types/terminal';
+import { createJob, JobApiError } from '@/lib/api/jobApi';
 
 export interface UseWebSocketExecutionResult {
   outputLines: OutputLine[];
@@ -24,8 +20,7 @@ export interface UseWebSocketExecutionResult {
 export function useWebSocketExecution(): UseWebSocketExecutionResult {
   const [outputLines, setOutputLines] = useState<OutputLine[]>([]);
   const [isExecuting, setIsExecuting] = useState(false);
-
-  const wsRef = useRef<WebSocket | null>(null);
+  const wsClient = useRef<WebSocketClient | null>(null);
 
   /**
    * Add output line to the display
@@ -38,17 +33,11 @@ export function useWebSocketExecution(): UseWebSocketExecutionResult {
   }, []);
 
   /**
-   * Send user input to PTY - industry standard approach
+   * Send user input to the running process
    */
   const sendInput = useCallback((input: string) => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      // Send input directly to PTY (type changed from 'input_response' to 'input')
-      wsRef.current.send(JSON.stringify({
-        type: 'input',
-        data: input + '\n'
-      }));
-
-      // Add user input to output display
+    if (wsClient.current?.isConnected) {
+      wsClient.current.send('input', { data: input + '\n' });
       addOutputLine('input', input);
     }
   }, [addOutputLine]);
@@ -67,8 +56,8 @@ export function useWebSocketExecution(): UseWebSocketExecutionResult {
     setIsExecuting(true);
 
     try {
-      // Step 1: Create job and get token (no API key needed - handled server-side)
-      addOutputLine('system', 'Creating execution job...');
+      // Step 1: Create job and get token
+      console.log('Creating execution job...');
 
       let jobData;
       try {
@@ -84,106 +73,53 @@ export function useWebSocketExecution(): UseWebSocketExecutionResult {
       }
 
       const { job_id, job_token, expires_at } = jobData;
-      addOutputLine('system', `Job created: ${job_id}`);
-      addOutputLine('system', `Token expires: ${new Date(expires_at).toLocaleTimeString()}`);
+      console.log(`Job created: ${job_id}`);
+      console.log(`Token expires: ${new Date(expires_at).toLocaleTimeString()}`);
 
       // Step 2: Connect to WebSocket
-      addOutputLine('system', 'Connecting to execution service...');
+      console.log('Connecting to execution service...');
 
       const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws/execute';
+      const client = new WebSocketClient();
+      wsClient.current = client;
 
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
+      // Register handlers
+      client.on('output', (data) => {
+        addOutputLine(data.stream, data.data);
+      });
 
-      // Connection opened
-      ws.onopen = () => {
-        addOutputLine('system', 'Connected! Authenticating and starting execution...');
-
-        // Step 3: Send authenticated execution request
-        // IMPORTANT: No API key here, only job_id and job_token
-        ws.send(JSON.stringify({
-          type: 'execute',
-          job_id,
-          job_token,
-          code,
-          language
-        }));
-      };
-
-      // Handle incoming messages
-      ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-
-          switch (message.type) {
-            case 'output':
-              // Real-time output from PTY
-              const stream = message.stream as 'stdout' | 'stderr';
-              addOutputLine(stream, message.data);
-              break;
-
-            case 'complete':
-              // Execution completed
-              addOutputLine('system', `\nExecution completed in ${message.execution_time?.toFixed(3)}s (exit code: ${message.exit_code})`);
-              setIsExecuting(false);
-              ws.close();
-              break;
-
-            case 'error':
-              // Error occurred
-              addOutputLine('stderr', `Error: ${message.message}`);
-              setIsExecuting(false);
-              ws.close();
-              break;
-
-            default:
-              console.warn('Unknown message type:', message.type);
-          }
-        } catch (err) {
-          console.error('Error parsing WebSocket message:', err);
-          addOutputLine('system', 'Error parsing server message');
-        }
-      };
-
-      // Handle errors
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        addOutputLine('system', 'Connection error - please check your connection');
+      client.on('complete', (data) => {
         setIsExecuting(false);
-      };
+        addOutputLine('system', `\nExecution completed in ${data.execution_time?.toFixed(3)}s (exit code: ${data.exit_code})`);
+        client.disconnect();
+      });
 
-      // Handle connection close
-      ws.onclose = (event) => {
-        // Code 1008 indicates authentication failure
-        if (event.code === 1008) {
-          addOutputLine('stderr', 'Authentication failed - invalid or expired token');
-        } else if (isExecuting) {
-          if (event.wasClean) {
-            console.log(`WebSocket closed cleanly, code=${event.code}, reason=${event.reason}`);
-          } else {
-            addOutputLine('system', 'Connection lost unexpectedly');
-          }
-        }
+      client.on('error', (data) => {
+        addOutputLine('stderr', `Error: ${data.message}`);
         setIsExecuting(false);
-        wsRef.current = null;
-      };
+        client.disconnect();
+      });
+
+      // Connect and execute
+      await client.connect(wsUrl);
+      console.log('Connected! Authenticating and starting execution...');
+
+      client.send('execute', { job_id, job_token, code, language });
 
     } catch (err: any) {
       addOutputLine('system', `Failed to connect: ${err.message}`);
       setIsExecuting(false);
     }
-  }, [addOutputLine, isExecuting]);
+  }, [addOutputLine]);
 
   /**
    * Clear all output
    */
   const clearOutput = useCallback(() => {
     setOutputLines([]);
-
-    // Close WebSocket if open
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
+    if (wsClient.current) {
+      wsClient.current.disconnect();
+      wsClient.current = null;
     }
   }, []);
 

@@ -1,14 +1,28 @@
+"use client";
+
+import { useState } from "react";
 import IDE from "./components/ide"
-import Header from "./components/header"
-import Footer from "./components/footer"
+import Header from "./components/layout/Header"
 
 export default function Home() {
-  return (
+  const [ideHandlers, setIdeHandlers] = useState<{
+    onDownload?: () => void;
+    onRestart?: () => void;
+    onShare?: () => void;
+    onSettings?: () => void;
+  }>({});
 
-    <div className="bg-[#242424]">
-      <Header />
-      <IDE />
-      <Footer />
+  return (
+    <div className="bg-background h-screen flex flex-col">
+      <Header
+        onDownload={ideHandlers.onDownload}
+        onRestart={ideHandlers.onRestart}
+        onShare={ideHandlers.onShare}
+        onSettings={ideHandlers.onSettings}
+      />
+      <div className="flex-1 overflow-hidden">
+        <IDE onRegisterHandlers={setIdeHandlers} />
+      </div>
     </div>
   )
 }

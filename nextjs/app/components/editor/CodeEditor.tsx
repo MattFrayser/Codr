@@ -14,7 +14,7 @@ interface CodeEditorProps {
   language: string;
   theme: string;
   onChange: (value: string | undefined) => void;
-  editorOptions: EditorProps['options']; // Monaco editor options
+  editorOptions: EditorProps['options']; 
 }
 
 export function CodeEditor({
@@ -25,9 +25,9 @@ export function CodeEditor({
   editorOptions
 }: CodeEditorProps) {
   return (
-    <div className="flex-grow">
+    <div className="h-full">
       <Editor
-        height="50vh"
+        height="100%"
         defaultLanguage="python"
         language={language.toLowerCase()}
         theme={theme}
