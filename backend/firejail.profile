@@ -24,6 +24,17 @@ blacklist /opt
 blacklist /run/user
 blacklist /srv
 
+# Prevent access to sensitive files even in /tmp
+blacklist /tmp/.X11-unix
+blacklist /tmp/.ICE-unix
+blacklist ${HOME}/.ssh
+blacklist ${HOME}/.gnupg
+
+# Private isolated environment
+private-tmp
+private-dev
+private-cache
+
 # Seccomp filter - block dangerous syscalls
 seccomp
 seccomp.block-secondary
@@ -41,9 +52,13 @@ nice 10
 
 # Limit resources
 rlimit-cpu 10
-rlimit-fsize 100000
-rlimit-nproc 10
-rlimit-nofile 50
+rlimit-fsize 10485760    # 10MB (was 100KB) - students create logs
+rlimit-nproc 60          # 60 processes (was 10) - JVM/Node need 20-30
+rlimit-nofile 100        # 100 FDs (was 50) - file I/O exercises
 
 # Timeout (overridden by command-line args)
 timeout 00:00:10
+
+# Prevent resource exhaustion attacks
+rlimit-sigpending 10     # Limit pending signals
+rlimit-msgqueue 100      # Limit message queue size

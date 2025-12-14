@@ -10,25 +10,18 @@ Firejail sandbox provides the primary security boundary.
 
 from typing import Tuple
 
-from .ast_validator import TreeSitterParser
-from .python_ast_validator import PythonASTValidator
-from .javascript_ast_validator import JavaScriptASTValidator
-from .c_cpp_ast_validator import CCppASTValidator
-from .rust_ast_validator import RustASTValidator
+from .query_validator import QueryValidator
 
 
 class CodeValidator:
     """Validates code against security blocklists using AST analysis"""
 
     def __init__(self):
-        self.ts_parser = TreeSitterParser()
-        self.python_validator = PythonASTValidator()
-        self.js_validator = JavaScriptASTValidator()
-        self.c_validator = CCppASTValidator()
-        self.rust_validator = RustASTValidator()
+        self.validators = {}
+        for lang in ["python", "javascript", "rust", "c", "cpp"]:
+            self.validators[lang] = QueryValidator(lang)
 
-    @staticmethod
-    def validate(code: str, language: str) -> Tuple[bool, str]:
+    def validate(self, code: str, language: str) -> Tuple[bool, str]:
         """
         Validate code is safe to execute
 
@@ -38,21 +31,8 @@ class CodeValidator:
         Raises:
             Exception if tree-sitter is not available or parsing fails
         """
-        # Create validator instance
-        validator = CodeValidator()
-        language = language.lower()
-
-        # Dispatch to appropriate validator
-        if language == "python":
-            return validator.python_validator.validate(code)
-        elif language in ["javascript", "js"]:
-            tree = validator.ts_parser.parse(code, "javascript")
-            return validator.js_validator.validate(tree, code)
-        elif language in ["c", "cpp", "c++"]:
-            tree = validator.ts_parser.parse(code, "cpp")
-            return validator.c_validator.validate(tree, code)
-        elif language == "rust":
-            tree = validator.ts_parser.parse(code, "rust")
-            return validator.rust_validator.validate(tree, code)
-        else:
+        lang_key = language.lower()
+        if lang_key not in self.validators:
             return False, f"Unsupported language: {language}"
+            
+        return self.validators[lang_key].validate(code)

@@ -43,6 +43,10 @@ class BaseExecutor(ABC):
             {"success": bool, "exit_code": int, "execution_time": float}
         """
         with tempfile.TemporaryDirectory() as tmpdir:
+            # Ensure directory is writable (verified for Firejail compatibility)
+            if not os.path.isdir(tmpdir):
+                raise RuntimeError(f"Workspace {tmpdir} not created")
+
             filepath = self._writeToFile(tmpdir, code, filename)
             command = self._build_command(filepath, tmpdir)
             result = self._execute_pty(command, tmpdir, on_output, input_queue)
@@ -91,8 +95,10 @@ class BaseExecutor(ABC):
             "--quiet", # Suppress warning that were in docker container
             "--profile=/etc/firejail/sandbox.profile",
             "--nodbus",
+            f"--private={workdir}",  # Isolated workspace (files only in this tmpdir)
             f"--rlimit-cpu={self.timeout}",
             f"--rlimit-fsize={self.maxFileSize * 1024 * 1024}",
+            f"--rlimit-nproc=60",   # Allow 60 processes for threading/concurrency
             f"--timeout=00:00:{self.timeout:02d}",
         ] 
 
