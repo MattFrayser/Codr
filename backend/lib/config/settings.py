@@ -35,7 +35,7 @@ class AppSettings(BaseSettings):
         default=300, description="Maximum memory per execution in MB"
     )
     max_file_size_mb: int = Field(
-        default=1, description="Maximum output file size in MB"
+        default=10, description="Maximum output file size in MB"
     )
     compilation_timeout: int = Field(
         default=10, description="Compilation timeout in seconds"
