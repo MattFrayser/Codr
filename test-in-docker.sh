@@ -73,20 +73,28 @@ echo ""
 # Test 5: Security - try to modify /nix/store
 echo "Test 5: Security test - attempt to modify /nix/store"
 WORKSPACE=$(mktemp -d)
+TEST_RESULT=0
 firejail \
   --quiet \
   --private=$WORKSPACE \
   --read-only=/nix \
-  /runtime/bin/python3.11 -c "
+  /runtime/bin/python3.11 -c '
 import os
+import sys
 try:
-    with open(\"/nix/store/hacked.txt\", \"w\") as f:
-        f.write(\"pwned\")
-    print(\"✗ SECURITY FAIL: Could modify /nix/store!\")
-    exit(1)
+    with open("/nix/store/hacked.txt", "w") as f:
+        f.write("pwned")
+    print("✗ CRITICAL: Could write to /nix/store! Security bypassed!")
+    sys.exit(1)
 except Exception as e:
-    print(f\"✓ Security works: Cannot modify /nix/store ({type(e).__name__}: {e})\")
-" || echo "  (Expected to fail - that means security works)"
+    print(f"✓ Security works: Blocked write ({type(e).__name__})")
+    sys.exit(0)
+' || TEST_RESULT=$?
+
+if [ $TEST_RESULT -eq 1 ]; then
+  echo "  ⚠️  WARNING: This is a SECURITY VULNERABILITY!"
+  echo "  ⚠️  The --private + --read-only combination failed!"
+fi
 rm -rf $WORKSPACE
 echo ""
 
@@ -108,14 +116,14 @@ firejail \
   --quiet \
   --profile=/etc/firejail/sandbox.profile \
   --private=$WORKSPACE \
-  /runtime/bin/python3.11 -c "
+  /runtime/bin/python3.11 -c '
 import sys
 import os
-print(f\"✓ Full profile test works\")
-print(f\"  Python version: {sys.version.split()[0]}\")
-print(f\"  Working dir: {os.getcwd()}\")
-print(f\"  Temp dir isolated: {os.path.exists(\"/tmp\")}\")
-"
+print(f"✓ Full profile test works")
+print(f"  Python version: {sys.version.split()[0]}")
+print(f"  Working dir: {os.getcwd()}")
+print(f"  Temp dir isolated: {os.path.exists(\"/tmp\")}")
+'
 rm -rf $WORKSPACE
 echo ""
 
