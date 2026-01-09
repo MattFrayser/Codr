@@ -14,6 +14,7 @@ echo "Running Nix-Firejail compatibility tests..."
 echo ""
 
 docker run --rm -it \
+  --user root \
   --privileged \
   --security-opt seccomp=unconfined \
   codr-firejail-test bash -c '

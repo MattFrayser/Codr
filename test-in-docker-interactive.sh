@@ -18,6 +18,7 @@ echo "Setting up Nix-style test environment inside container..."
 echo ""
 
 docker run --rm -it \
+  --user root \
   --privileged \
   --security-opt seccomp=unconfined \
   codr-firejail-test bash -c '
